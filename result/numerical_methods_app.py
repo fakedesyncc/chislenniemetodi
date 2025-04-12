@@ -15,7 +15,9 @@ from tkmacosx import ColorVar
 class NumericalMethodsApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("Численные методы: Интегрирование и Интерполяция(ЛР2, ЛР1)")
+        self.root.title(
+            "Численные методы: Интегрирование, Интерполяция, Дифференцирование, Уравнения"
+        )
         self.root.geometry("1400x900")
         self.root.minsize(1200, 800)
 
@@ -190,16 +192,30 @@ class NumericalMethodsApp:
 
         self.integration_frame = ttk.Frame(self.notebook, padding="10")
         self.interpolation_frame = ttk.Frame(self.notebook, padding="10")
+        self.differentiation_frame = ttk.Frame(
+            self.notebook, padding="10"
+        )  # New frame for Lab 3
+        self.equations_frame = ttk.Frame(
+            self.notebook, padding="10"
+        )  # New frame for Lab 4
         self.theory_frame = ttk.Frame(self.notebook, padding="10")
         self.help_frame = ttk.Frame(self.notebook, padding="10")
 
         self.notebook.add(self.integration_frame, text="Интегрирование ЛР №2")
         self.notebook.add(self.interpolation_frame, text="Интерполяция ЛР №1")
+        self.notebook.add(
+            self.differentiation_frame, text="Дифференцирование ЛР №3"
+        )  # New tab
+        self.notebook.add(
+            self.equations_frame, text="Нелинейные уравнения ЛР №4"
+        )  # New tab
         self.notebook.add(self.theory_frame, text="Теория по лр")
         self.notebook.add(self.help_frame, text="Справка о программе")
 
         self.setup_integration_tab()
         self.setup_interpolation_tab()
+        self.setup_differentiation_tab()  # Setup for Lab 3
+        self.setup_equations_tab()  # Setup for Lab 4
         self.setup_theory_tab()
         self.setup_help_tab()
 
@@ -429,6 +445,330 @@ class NumericalMethodsApp:
         output_frame.rowconfigure(0, weight=1)
         output_frame.rowconfigure(1, weight=1)
 
+    def setup_differentiation_tab(self):
+        """Setup the differentiation tab (Lab 3)"""
+        container_frame = ttk.Frame(self.differentiation_frame)
+        container_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+
+        input_frame = ttk.LabelFrame(
+            container_frame, text="Входные данные", padding="15"
+        )
+        input_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), padx=(0, 10))
+
+        # Input method selection
+        ttk.Label(
+            input_frame, text="Способ задания функции:", style="Subtitle.TLabel"
+        ).grid(row=0, column=0, sticky=tk.W, pady=(0, 5))
+
+        input_methods_frame = ttk.Frame(input_frame)
+        input_methods_frame.grid(row=0, column=1, sticky=(tk.W, tk.E), pady=5)
+
+        self.diff_input_method_var = tk.StringVar(value="analytic")
+        input_methods = [
+            ("Аналитически", "analytic"),
+            ("Таблично", "tabular"),
+        ]
+
+        for i, (text, value) in enumerate(input_methods):
+            rb = ttk.Radiobutton(
+                input_methods_frame,
+                text=text,
+                value=value,
+                variable=self.diff_input_method_var,
+                command=self.toggle_diff_input_method,
+            )
+            rb.grid(row=0, column=i, sticky=tk.W, padx=10)
+
+        # Analytic function input
+        self.diff_analytic_frame = ttk.Frame(input_frame)
+        self.diff_analytic_frame.grid(
+            row=1, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=5
+        )
+
+        ttk.Label(
+            self.diff_analytic_frame, text="Функция f(x):", style="Subtitle.TLabel"
+        ).grid(row=0, column=0, sticky=tk.W, pady=5)
+        self.diff_function_entry = ttk.Entry(
+            self.diff_analytic_frame, width=40, font=("SF Pro", 10)
+        )
+        self.diff_function_entry.grid(row=0, column=1, sticky=(tk.W, tk.E), pady=5)
+        self.diff_function_entry.insert(0, "x**2")
+
+        ttk.Label(
+            self.diff_analytic_frame,
+            text="Доступные функции: sin, cos, tan, exp, sqrt, abs",
+            font=("SF Pro", 8),
+        ).grid(row=1, column=0, columnspan=2, sticky=tk.W, pady=(0, 5))
+
+        ttk.Label(
+            self.diff_analytic_frame, text="Точка x:", style="Subtitle.TLabel"
+        ).grid(row=2, column=0, sticky=tk.W, pady=5)
+        self.diff_x_entry = ttk.Entry(
+            self.diff_analytic_frame, width=20, font=("SF Pro", 10)
+        )
+        self.diff_x_entry.grid(row=2, column=1, sticky=(tk.W, tk.E), pady=5)
+        self.diff_x_entry.insert(0, "1.0")
+
+        # Tabular function input
+        self.diff_tabular_frame = ttk.Frame(input_frame)
+        self.diff_tabular_frame.grid(
+            row=1, column=0, columnspan=2, sticky=(tk.W, tk.E), pady=5
+        )
+        self.diff_tabular_frame.grid_remove()  # Initially hidden
+
+        ttk.Label(
+            self.diff_tabular_frame,
+            text="Табличные данные (x, y):",
+            style="Subtitle.TLabel",
+        ).grid(row=0, column=0, sticky=tk.W, pady=(0, 5), columnspan=2)
+
+        points_frame = ttk.Frame(self.diff_tabular_frame, borderwidth=1, relief="solid")
+        points_frame.grid(
+            row=1, column=0, sticky=(tk.W, tk.E), pady=(0, 10), columnspan=2
+        )
+
+        self.diff_points_text = scrolledtext.ScrolledText(
+            points_frame,
+            wrap=tk.WORD,
+            width=30,
+            height=10,
+            font=("SF Mono", 9),
+            borderwidth=0,
+        )
+        self.diff_points_text.pack(fill=tk.BOTH, expand=True)
+        self.diff_points_text.insert(tk.END, "0 0\n0.5 0.25\n1 1\n1.5 2.25\n2 4")
+
+        ttk.Label(
+            self.diff_tabular_frame,
+            text="Точка x для дифференцирования:",
+            style="Subtitle.TLabel",
+        ).grid(row=2, column=0, sticky=tk.W, pady=5)
+        self.diff_tabular_x_entry = ttk.Entry(
+            self.diff_tabular_frame, width=20, font=("SF Pro", 10)
+        )
+        self.diff_tabular_x_entry.grid(row=2, column=1, sticky=(tk.W, tk.E), pady=5)
+        self.diff_tabular_x_entry.insert(0, "1.0")
+
+        # Common settings
+        ttk.Label(
+            input_frame, text="Порядок производной:", style="Subtitle.TLabel"
+        ).grid(row=2, column=0, sticky=tk.W, pady=5)
+
+        derivative_order_frame = ttk.Frame(input_frame)
+        derivative_order_frame.grid(row=2, column=1, sticky=(tk.W, tk.E), pady=5)
+
+        self.derivative_order_var = tk.StringVar(value="first")
+        derivative_orders = [
+            ("Первая производная", "first"),
+            ("Вторая производная", "second"),
+        ]
+
+        for i, (text, value) in enumerate(derivative_orders):
+            rb = ttk.Radiobutton(
+                derivative_order_frame,
+                text=text,
+                value=value,
+                variable=self.derivative_order_var,
+            )
+            rb.grid(row=0, column=i, sticky=tk.W, padx=10)
+
+        ttk.Label(input_frame, text="Начальный шаг h:", style="Subtitle.TLabel").grid(
+            row=3, column=0, sticky=tk.W, pady=5
+        )
+        self.diff_h_entry = ttk.Entry(input_frame, width=20, font=("SF Pro", 10))
+        self.diff_h_entry.grid(row=3, column=1, sticky=(tk.W, tk.E), pady=5)
+        self.diff_h_entry.insert(0, "0.1")
+
+        ttk.Label(input_frame, text="Точность (eps):", style="Subtitle.TLabel").grid(
+            row=4, column=0, sticky=tk.W, pady=5
+        )
+        self.diff_eps_entry = ttk.Entry(input_frame, width=20, font=("SF Pro", 10))
+        self.diff_eps_entry.grid(row=4, column=1, sticky=(tk.W, tk.E), pady=5)
+        self.diff_eps_entry.insert(0, "1e-6")
+
+        self.differentiate_button = ttk.Button(
+            input_frame,
+            text="Вычислить производную",
+            command=self.calculate_differentiation,
+            style="Rounded.TButton",
+        )
+        self.differentiate_button.grid(
+            row=5, column=0, columnspan=2, pady=(15, 0), sticky=(tk.W, tk.E)
+        )
+
+        # Output frame
+        output_frame = ttk.Frame(container_frame)
+        output_frame.grid(row=0, column=1, sticky=(tk.W, tk.E, tk.N, tk.S))
+
+        self.plot_frame_differentiation = ttk.LabelFrame(
+            output_frame, text="Графики дифференцирования", padding="10"
+        )
+        self.plot_frame_differentiation.grid(
+            row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10)
+        )
+
+        self.fig_differentiation = Figure(figsize=(10, 8), dpi=100)
+        self.canvas_differentiation = FigureCanvasTkAgg(
+            self.fig_differentiation, master=self.plot_frame_differentiation
+        )
+        self.canvas_differentiation.draw()
+        self.canvas_differentiation.get_tk_widget().pack(
+            fill=tk.BOTH, expand=True, padx=5, pady=5
+        )
+
+        results_frame = ttk.LabelFrame(
+            output_frame, text="Результаты дифференцирования", padding="10"
+        )
+        results_frame.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+
+        self.differentiation_result_text = scrolledtext.ScrolledText(
+            results_frame, wrap=tk.WORD, width=80, height=20, font=("SF Mono", 9)
+        )
+        self.differentiation_result_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        self.differentiation_frame.columnconfigure(0, weight=1)
+        self.differentiation_frame.rowconfigure(0, weight=1)
+        container_frame.columnconfigure(1, weight=3)
+        container_frame.rowconfigure(0, weight=1)
+        output_frame.columnconfigure(0, weight=1)
+        output_frame.rowconfigure(0, weight=1)
+        output_frame.rowconfigure(1, weight=1)
+
+    def setup_equations_tab(self):
+        """Setup the nonlinear equations tab (Lab 4)"""
+        container_frame = ttk.Frame(self.equations_frame)
+        container_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+
+        input_frame = ttk.LabelFrame(
+            container_frame, text="Входные данные", padding="15"
+        )
+        input_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), padx=(0, 10))
+
+        ttk.Label(
+            input_frame, text="Уравнение f(x) = 0:", style="Subtitle.TLabel"
+        ).grid(row=0, column=0, sticky=tk.W, pady=(0, 5))
+        self.equation_entry = ttk.Entry(input_frame, width=40, font=("SF Pro", 10))
+        self.equation_entry.grid(row=0, column=1, sticky=(tk.W, tk.E), pady=(0, 5))
+        self.equation_entry.insert(0, "x**2 - 4")
+
+        ttk.Label(
+            input_frame,
+            text="Доступные функции: sin, cos, tan, exp, log, ln, sqrt, abs",
+            font=("SF Pro", 8),
+        ).grid(row=1, column=0, columnspan=2, sticky=tk.W, pady=(0, 15))
+
+        ttk.Label(input_frame, text="Левая граница (a):", style="Subtitle.TLabel").grid(
+            row=2, column=0, sticky=tk.W, pady=5
+        )
+        self.eq_a_entry = ttk.Entry(input_frame, width=20, font=("SF Pro", 10))
+        self.eq_a_entry.grid(row=2, column=1, sticky=(tk.W, tk.E), pady=5)
+        self.eq_a_entry.insert(0, "0")
+
+        ttk.Label(
+            input_frame, text="Правая граница (b):", style="Subtitle.TLabel"
+        ).grid(row=3, column=0, sticky=tk.W, pady=5)
+        self.eq_b_entry = ttk.Entry(input_frame, width=20, font=("SF Pro", 10))
+        self.eq_b_entry.grid(row=3, column=1, sticky=(tk.W, tk.E), pady=5)
+        self.eq_b_entry.insert(0, "3")
+
+        ttk.Label(input_frame, text="Точность (eps):", style="Subtitle.TLabel").grid(
+            row=4, column=0, sticky=tk.W, pady=5
+        )
+        self.eq_eps_entry = ttk.Entry(input_frame, width=20, font=("SF Pro", 10))
+        self.eq_eps_entry.grid(row=4, column=1, sticky=(tk.W, tk.E), pady=5)
+        self.eq_eps_entry.insert(0, "1e-6")
+
+        ttk.Label(
+            input_frame,
+            text="Начальное приближение (для методов Ньютона и секущих):",
+            style="Subtitle.TLabel",
+        ).grid(row=5, column=0, sticky=tk.W, pady=5)
+        self.eq_x0_entry = ttk.Entry(input_frame, width=20, font=("SF Pro", 10))
+        self.eq_x0_entry.grid(row=5, column=1, sticky=(tk.W, tk.E), pady=5)
+        self.eq_x0_entry.insert(0, "1.0")
+
+        # Method selection
+        ttk.Label(input_frame, text="Методы:", style="Subtitle.TLabel").grid(
+            row=6, column=0, sticky=tk.W, pady=5
+        )
+
+        eq_methods_frame = ttk.Frame(input_frame)
+        eq_methods_frame.grid(row=6, column=1, sticky=(tk.W, tk.E), pady=5)
+
+        self.eq_method_var = tk.StringVar(value="all")
+        eq_methods = [
+            ("Все методы", "all"),
+            ("Метод половинного деления", "bisection"),
+            ("Метод хорд", "chord"),
+            ("Метод Ньютона", "newton"),
+            ("Метод секущих", "secant"),
+            ("Гибридный метод Ньютона-половинного деления", "hybrid"),
+        ]
+
+        for i, (text, value) in enumerate(eq_methods):
+            rb = ttk.Radiobutton(
+                eq_methods_frame, text=text, value=value, variable=self.eq_method_var
+            )
+            rb.grid(row=i, column=0, sticky=tk.W, pady=2)
+
+        self.solve_equation_button = ttk.Button(
+            input_frame,
+            text="Решить уравнение",
+            command=self.solve_equation,
+            style="Rounded.TButton",
+        )
+        self.solve_equation_button.grid(
+            row=7, column=0, columnspan=2, pady=(15, 0), sticky=(tk.W, tk.E)
+        )
+
+        # Benchmark button
+        self.benchmark_button = ttk.Button(
+            input_frame,
+            text="Сравнительный анализ методов",
+            command=self.benchmark_equation_methods,
+            style="Rounded.TButton",
+        )
+        self.benchmark_button.grid(
+            row=8, column=0, columnspan=2, pady=(10, 0), sticky=(tk.W, tk.E)
+        )
+
+        output_frame = ttk.Frame(container_frame)
+        output_frame.grid(row=0, column=1, sticky=(tk.W, tk.E, tk.N, tk.S))
+
+        self.plot_frame_equation = ttk.LabelFrame(
+            output_frame, text="Графики", padding="10"
+        )
+        self.plot_frame_equation.grid(
+            row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S), pady=(0, 10)
+        )
+
+        self.fig_equation = Figure(figsize=(10, 8), dpi=100)
+        self.canvas_equation = FigureCanvasTkAgg(
+            self.fig_equation, master=self.plot_frame_equation
+        )
+        self.canvas_equation.draw()
+        self.canvas_equation.get_tk_widget().pack(
+            fill=tk.BOTH, expand=True, padx=5, pady=5
+        )
+
+        results_frame = ttk.LabelFrame(
+            output_frame, text="Результаты решения уравнения", padding="10"
+        )
+        results_frame.grid(row=1, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
+
+        self.equation_result_text = scrolledtext.ScrolledText(
+            results_frame, wrap=tk.WORD, width=80, height=20, font=("SF Mono", 9)
+        )
+        self.equation_result_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+
+        self.equations_frame.columnconfigure(0, weight=1)
+        self.equations_frame.rowconfigure(0, weight=1)
+        container_frame.columnconfigure(1, weight=3)
+        container_frame.rowconfigure(0, weight=1)
+        output_frame.columnconfigure(0, weight=1)
+        output_frame.rowconfigure(0, weight=1)
+        output_frame.rowconfigure(1, weight=1)
+
     def setup_theory_tab(self):
         theory_frame = ttk.Frame(self.theory_frame, padding="15")
         theory_frame.pack(fill=tk.BOTH, expand=True)
@@ -484,6 +824,8 @@ class NumericalMethodsApp:
             for tab in (
                 self.integration_frame,
                 self.interpolation_frame,
+                self.differentiation_frame,
+                self.equations_frame,
                 self.theory_frame,
                 self.help_frame,
             ):
@@ -492,6 +834,9 @@ class NumericalMethodsApp:
             # Update button styles
             self.calculate_button.configure(style="Light.TButton")
             self.interpolate_button.configure(style="Light.TButton")
+            self.differentiate_button.configure(style="Light.TButton")
+            self.solve_equation_button.configure(style="Light.TButton")
+            self.benchmark_button.configure(style="Light.TButton")
         else:
             self.root.configure(bg="#1c1c1e")
             self.style.theme_use("clam")
@@ -505,6 +850,8 @@ class NumericalMethodsApp:
             for tab in (
                 self.integration_frame,
                 self.interpolation_frame,
+                self.differentiation_frame,
+                self.equations_frame,
                 self.theory_frame,
                 self.help_frame,
             ):
@@ -512,63 +859,61 @@ class NumericalMethodsApp:
 
             self.calculate_button.configure(style="Dark.TButton")
             self.interpolate_button.configure(style="Dark.TButton")
+            self.differentiate_button.configure(style="Dark.TButton")
+            self.solve_equation_button.configure(style="Dark.TButton")
+            self.benchmark_button.configure(style="Dark.TButton")
 
         self.update_plot_style()
 
     def update_plot_style(self):
-        if hasattr(self, "fig_integration"):
-            self.fig_integration.set_facecolor(
-                "#ffffff" if self.theme == "light" else "#1c1c1e"
-            )
-            for ax in self.fig_integration.get_axes():
-                ax.set_facecolor("#ffffff" if self.theme == "light" else "#1c1c1e")
-                ax.tick_params(colors="#000000" if self.theme == "light" else "#ffffff")
-                ax.xaxis.label.set_color(
-                    "#000000" if self.theme == "light" else "#ffffff"
-                )
-                ax.yaxis.label.set_color(
-                    "#000000" if self.theme == "light" else "#ffffff"
-                )
-                ax.title.set_color("#000000" if self.theme == "light" else "#ffffff")
+        for fig_attr, canvas_attr in [
+            ("fig_integration", "canvas_integration"),
+            ("fig_interpolation", "canvas_interpolation"),
+            ("fig_differentiation", "canvas_differentiation"),
+            ("fig_equation", "canvas_equation"),
+        ]:
+            if hasattr(self, fig_attr):
+                fig = getattr(self, fig_attr)
+                canvas = getattr(self, canvas_attr)
 
-                ax.grid(
-                    True,
-                    color="#e5e5ea" if self.theme == "light" else "#2c2c2e",
-                    linestyle="-",
-                    linewidth=0.5,
-                )
+                fig.set_facecolor("#ffffff" if self.theme == "light" else "#1c1c1e")
+                for ax in fig.get_axes():
+                    ax.set_facecolor("#ffffff" if self.theme == "light" else "#1c1c1e")
+                    ax.tick_params(
+                        colors="#000000" if self.theme == "light" else "#ffffff"
+                    )
+                    ax.xaxis.label.set_color(
+                        "#000000" if self.theme == "light" else "#ffffff"
+                    )
+                    ax.yaxis.label.set_color(
+                        "#000000" if self.theme == "light" else "#ffffff"
+                    )
+                    ax.title.set_color(
+                        "#000000" if self.theme == "light" else "#ffffff"
+                    )
 
-                for spine in ax.spines.values():
-                    spine.set_color("#e5e5ea" if self.theme == "light" else "#2c2c2e")
+                    ax.grid(
+                        True,
+                        color="#e5e5ea" if self.theme == "light" else "#2c2c2e",
+                        linestyle="-",
+                        linewidth=0.5,
+                    )
 
-            self.canvas_integration.draw()
+                    for spine in ax.spines.values():
+                        spine.set_color(
+                            "#e5e5ea" if self.theme == "light" else "#2c2c2e"
+                        )
 
-        if hasattr(self, "fig_interpolation"):
-            self.fig_interpolation.set_facecolor(
-                "#ffffff" if self.theme == "light" else "#1c1c1e"
-            )
-            for ax in self.fig_interpolation.get_axes():
-                ax.set_facecolor("#ffffff" if self.theme == "light" else "#1c1c1e")
-                ax.tick_params(colors="#000000" if self.theme == "light" else "#ffffff")
-                ax.xaxis.label.set_color(
-                    "#000000" if self.theme == "light" else "#ffffff"
-                )
-                ax.yaxis.label.set_color(
-                    "#000000" if self.theme == "light" else "#ffffff"
-                )
-                ax.title.set_color("#000000" if self.theme == "light" else "#ffffff")
+                canvas.draw()
 
-                ax.grid(
-                    True,
-                    color="#e5e5ea" if self.theme == "light" else "#2c2c2e",
-                    linestyle="-",
-                    linewidth=0.5,
-                )
-
-                for spine in ax.spines.values():
-                    spine.set_color("#e5e5ea" if self.theme == "light" else "#2c2c2e")
-
-            self.canvas_interpolation.draw()
+    def toggle_diff_input_method(self):
+        """Toggle between analytic and tabular input methods for differentiation"""
+        if self.diff_input_method_var.get() == "analytic":
+            self.diff_analytic_frame.grid()
+            self.diff_tabular_frame.grid_remove()
+        else:
+            self.diff_analytic_frame.grid_remove()
+            self.diff_tabular_frame.grid()
 
     def f(self, x):
         function_str = self.function_entry.get().replace("ln(", "log(")
@@ -587,6 +932,49 @@ class NumericalMethodsApp:
             "e": np.e,
         }
         return eval(function_str, {"__builtins__": {}}, local_dict)
+
+    def f_diff(self, x):
+        """Evaluate the function for differentiation"""
+        function_str = self.diff_function_entry.get().replace("ln(", "log(")
+        local_dict = {
+            "x": x,
+            "sin": np.sin,
+            "cos": np.cos,
+            "tan": np.tan,
+            "exp": np.exp,
+            "log": np.log10,
+            "ln": np.log,
+            "log10": np.log10,
+            "sqrt": np.sqrt,
+            "abs": np.abs,
+            "pi": np.pi,
+            "e": np.e,
+        }
+        return eval(function_str, {"__builtins__": {}}, local_dict)
+
+    def f_eq(self, x):
+        """Evaluate the function for equation solving"""
+        function_str = self.equation_entry.get().replace("ln(", "log(")
+        local_dict = {
+            "x": x,
+            "sin": np.sin,
+            "cos": np.cos,
+            "tan": np.tan,
+            "exp": np.exp,
+            "log": np.log10,
+            "ln": np.log,
+            "log10": np.log10,
+            "sqrt": np.sqrt,
+            "abs": np.abs,
+            "pi": np.pi,
+            "e": np.e,
+        }
+        return eval(function_str, {"__builtins__": {}}, local_dict)
+
+    def df_eq(self, x):
+        """Calculate the derivative of the equation function using central difference"""
+        h = 1e-6
+        return (self.f_eq(x + h) - self.f_eq(x - h)) / (2 * h)
 
     def trapezoidal_rule(self, a, b, n):
         h = (b - a) / n
@@ -1282,6 +1670,1131 @@ class NumericalMethodsApp:
         self.fig_interpolation.tight_layout()
         self.canvas_interpolation.draw()
 
+    def calculate_differentiation(self):
+        """Calculate numerical differentiation (Lab 3)"""
+        try:
+            h = float(self.diff_h_entry.get())
+            eps = float(self.diff_eps_entry.get())
+            derivative_order = self.derivative_order_var.get()
+            input_method = self.diff_input_method_var.get()
+
+            if input_method == "analytic":
+                x = float(self.diff_x_entry.get())
+                function_str = self.diff_function_entry.get()
+                x_sym = sp.Symbol("x")
+                f_sym = sp.sympify(function_str.replace("^", "**"))
+                if derivative_order == "first":
+                    df_sym = sp.diff(f_sym, x_sym)
+                    exact_derivative = float(df_sym.subs(x_sym, x))
+                else:
+                    df_sym = sp.diff(f_sym, x_sym, 2)
+                    exact_derivative = float(df_sym.subs(x_sym, x))
+
+                x_range = np.linspace(x - 2, x + 2, 1000)
+                y_range = np.array([self.f_diff(xi) for xi in x_range])
+
+                data = [
+                    (x - 2 * h, self.f_diff(x - 2 * h)),
+                    (x - h, self.f_diff(x - h)),
+                    (x, self.f_diff(x)),
+                    (x + h, self.f_diff(x + h)),
+                    (x + 2 * h, self.f_diff(x + 2 * h)),
+                ]
+            else:
+                points_str = (
+                    self.diff_points_text.get("1.0", tk.END).strip().split("\n")
+                )
+                data = [tuple(map(float, point.split())) for point in points_str]
+                data.sort(key=lambda point: point[0])
+
+                x = float(self.diff_tabular_x_entry.get())
+
+                if x < data[0][0] or x > data[-1][0]:
+                    raise ValueError(
+                        "Точка x должна быть в пределах диапазона табличных данных"
+                    )
+
+                x_data = np.array([point[0] for point in data])
+                y_data = np.array([point[1] for point in data])
+
+                poly = np.polyfit(x_data, y_data, len(data) - 1)
+                poly_derivative = np.polyder(
+                    poly, 1 if derivative_order == "first" else 2
+                )
+                exact_derivative = np.polyval(poly_derivative, x)
+
+                x_range = np.linspace(min(x_data), max(x_data), 1000)
+                y_range = np.polyval(poly, x_range)
+
+                function_str = "Табличная функция"
+
+            self.differentiation_result_text.delete(1.0, tk.END)
+            self.differentiation_result_text.insert(
+                tk.END, "🔢 ЧИСЛЕННОЕ ДИФФЕРЕНЦИРОВАНИЕ\n"
+            )
+            self.differentiation_result_text.insert(tk.END, "=" * 60 + "\n\n")
+
+            self.differentiation_result_text.insert(tk.END, "📝 ВХОДНЫЕ ДАННЫЕ:\n")
+            self.differentiation_result_text.insert(
+                tk.END, f"• Функция: {function_str}\n"
+            )
+            self.differentiation_result_text.insert(tk.END, f"• Точка x: {x}\n")
+            self.differentiation_result_text.insert(
+                tk.END,
+                f"• Порядок производной: {'Первый' if derivative_order == 'first' else 'Второй'}\n",
+            )
+            self.differentiation_result_text.insert(tk.END, f"• Начальный шаг h: {h}\n")
+            self.differentiation_result_text.insert(
+                tk.END, f"• Требуемая точность: {eps}\n"
+            )
+            self.differentiation_result_text.insert(tk.END, "-" * 60 + "\n\n")
+
+            self.status_var.set("Выполняется дифференцирование...")
+            self.root.update()
+
+            self.differentiation_result_text.insert(
+                tk.END, "Таблица значений функции:\n"
+            )
+            self.differentiation_result_text.insert(tk.END, "-" * 30 + "\n")
+            self.differentiation_result_text.insert(tk.END, "    x    |    f(x)    \n")
+            self.differentiation_result_text.insert(tk.END, "-" * 30 + "\n")
+
+            for x_val, y_val in data:
+                self.differentiation_result_text.insert(
+                    tk.END, f" {x_val:8.4f} | {y_val:10.6f}\n"
+                )
+
+            self.differentiation_result_text.insert(tk.END, "\n")
+
+            results = []
+
+            if derivative_order == "first":
+                formulas = [
+                    (
+                        "Левая разностная",
+                        lambda x, h: (self.f_diff(x) - self.f_diff(x - h)) / h,
+                    ),
+                    (
+                        "Правая разностная",
+                        lambda x, h: (self.f_diff(x + h) - self.f_diff(x)) / h,
+                    ),
+                    (
+                        "Центральная разностная",
+                        lambda x, h: (self.f_diff(x + h) - self.f_diff(x - h))
+                        / (2 * h),
+                    ),
+                    (
+                        "Трехточечная",
+                        lambda x, h: (
+                            -3 * self.f_diff(x)
+                            + 4 * self.f_diff(x + h)
+                            - self.f_diff(x + 2 * h)
+                        )
+                        / (2 * h),
+                    ),
+                ]
+
+                if input_method == "tabular":
+
+                    def tabular_f(x_val):
+                        for i, (xi, yi) in enumerate(data):
+                            if abs(xi - x_val) < 1e-10:
+                                return yi
+                        return np.interp(
+                            x_val, [p[0] for p in data], [p[1] for p in data]
+                        )
+
+                    formulas = [
+                        (
+                            "Левая разностная",
+                            lambda x, h: (tabular_f(x) - tabular_f(x - h)) / h,
+                        ),
+                        (
+                            "Правая разностная",
+                            lambda x, h: (tabular_f(x + h) - tabular_f(x)) / h,
+                        ),
+                        (
+                            "Центральная разностная",
+                            lambda x, h: (tabular_f(x + h) - tabular_f(x - h))
+                            / (2 * h),
+                        ),
+                        (
+                            "Трехточечная",
+                            lambda x, h: (
+                                -3 * tabular_f(x)
+                                + 4 * tabular_f(x + h)
+                                - tabular_f(x + 2 * h)
+                            )
+                            / (2 * h),
+                        ),
+                    ]
+            else:
+                formulas = [
+                    (
+                        "Центральная разностная",
+                        lambda x, h: (
+                            self.f_diff(x + h) - 2 * self.f_diff(x) + self.f_diff(x - h)
+                        )
+                        / (h**2),
+                    ),
+                    (
+                        "Пятиточечная",
+                        lambda x, h: (
+                            -self.f_diff(x + 2 * h)
+                            + 16 * self.f_diff(x + h)
+                            - 30 * self.f_diff(x)
+                            + 16 * self.f_diff(x - h)
+                            - self.f_diff(x - 2 * h)
+                        )
+                        / (12 * h**2),
+                    ),
+                ]
+
+                if input_method == "tabular":
+
+                    def tabular_f(x_val):
+                        for i, (xi, yi) in enumerate(data):
+                            if abs(xi - x_val) < 1e-10:
+                                return yi
+                        return np.interp(
+                            x_val, [p[0] for p in data], [p[1] for p in data]
+                        )
+
+                    formulas = [
+                        (
+                            "Центральная разностная",
+                            lambda x, h: (
+                                tabular_f(x + h) - 2 * tabular_f(x) + tabular_f(x - h)
+                            )
+                            / (h**2),
+                        ),
+                        (
+                            "Пятиточечная",
+                            lambda x, h: (
+                                -tabular_f(x + 2 * h)
+                                + 16 * tabular_f(x + h)
+                                - 30 * tabular_f(x)
+                                + 16 * tabular_f(x - h)
+                                - tabular_f(x - 2 * h)
+                            )
+                            / (12 * h**2),
+                        ),
+                    ]
+
+            self.differentiation_result_text.insert(
+                tk.END, "Вычисление производной с разными шагами:\n"
+            )
+            self.differentiation_result_text.insert(tk.END, "-" * 80 + "\n")
+            self.differentiation_result_text.insert(
+                tk.END,
+                "Метод                  | Шаг h      | Значение производной | Погрешность\n",
+            )
+            self.differentiation_result_text.insert(tk.END, "-" * 80 + "\n")
+
+            h_values = []
+            errors = {formula[0]: [] for formula in formulas}
+            derivative_values = {formula[0]: [] for formula in formulas}
+
+            current_h = h
+            for i in range(10):
+                h_values.append(current_h)
+
+                for name, formula in formulas:
+                    try:
+                        derivative = formula(x, current_h)
+                        error = abs(derivative - exact_derivative)
+
+                        self.differentiation_result_text.insert(
+                            tk.END,
+                            f"{name:22} | {current_h:10.8f} | {derivative:20.10f} | {error:10.8e}\n",
+                        )
+
+                        errors[name].append(error)
+                        derivative_values[name].append(derivative)
+                    except Exception as e:
+                        self.differentiation_result_text.insert(
+                            tk.END,
+                            f"{name:22} | {current_h:10.8f} | {'Ошибка вычисления':20} | {'N/A':10}\n",
+                        )
+                        errors[name].append(np.nan)
+                        derivative_values[name].append(np.nan)
+
+                self.differentiation_result_text.insert(tk.END, "-" * 80 + "\n")
+                current_h /= 2
+
+            self.differentiation_result_text.insert(
+                tk.END, "\nОпределение оптимального шага по принципу Рунге:\n"
+            )
+
+            best_h = {}
+            best_derivative = {}
+            best_error = {}
+
+            for name, formula in formulas:
+                min_error = float("inf")
+                optimal_h = h
+                optimal_derivative = None
+
+                for i in range(len(h_values) - 1):
+                    if np.isnan(errors[name][i]) or np.isnan(errors[name][i + 1]):
+                        continue
+
+                    p = 1 if "Левая" in name or "Правая" in name else 2
+                    runge_error = abs(
+                        derivative_values[name][i + 1] - derivative_values[name][i]
+                    ) / (2**p - 1)
+
+                    if runge_error < min_error:
+                        min_error = runge_error
+                        optimal_h = h_values[i + 1]
+                        optimal_derivative = derivative_values[name][i + 1]
+
+                best_h[name] = optimal_h
+                best_derivative[name] = optimal_derivative
+                best_error[name] = min_error
+
+                self.differentiation_result_text.insert(
+                    tk.END,
+                    f"{name}: оптимальный шаг h = {optimal_h:.8f}, производная = {optimal_derivative:.10f}, погрешность = {min_error:.8e}\n",
+                )
+
+            self.differentiation_result_text.insert(
+                tk.END, "\n🎯 ИТОГОВЫЙ РЕЗУЛЬТАТ:\n"
+            )
+            self.differentiation_result_text.insert(tk.END, "-" * 60 + "\n")
+
+            if input_method == "analytic":
+                self.differentiation_result_text.insert(
+                    tk.END, f"• Точное значение производной: {exact_derivative:.10f}\n"
+                )
+            else:
+                self.differentiation_result_text.insert(
+                    tk.END,
+                    f"• Интерполированное значение производной: {exact_derivative:.10f}\n",
+                )
+
+            for name in best_derivative:
+                self.differentiation_result_text.insert(
+                    tk.END,
+                    f"• {name}: {best_derivative[name]:.10f} (h = {best_h[name]:.8f}, погрешность = {best_error[name]:.8e})\n",
+                )
+
+            self.plot_differentiation_results(
+                x,
+                x_range,
+                y_range,
+                derivative_order,
+                h_values,
+                errors,
+                derivative_values,
+                exact_derivative,
+                best_h,
+            )
+
+            self.status_var.set("Дифференцирование завершено")
+
+        except Exception as e:
+            messagebox.showerror(
+                "Ошибка", f"Произошла ошибка при дифференцировании: {str(e)}"
+            )
+            self.status_var.set("Ошибка дифференцирования")
+
+    def plot_differentiation_results(
+        self,
+        x,
+        x_range,
+        y_range,
+        derivative_order,
+        h_values,
+        errors,
+        derivative_values,
+        exact_derivative,
+        best_h,
+    ):
+        """Plot differentiation results"""
+        self.fig_differentiation.clear()
+
+        ax1 = self.fig_differentiation.add_subplot(221)
+        ax1.plot(x_range, y_range, "b-", linewidth=2, label="f(x)")
+        ax1.axvline(x=x, color="r", linestyle="--", label=f"x = {x}")
+        ax1.set_title("График функции")
+        ax1.set_xlabel("x")
+        ax1.set_ylabel("f(x)")
+        ax1.legend()
+        ax1.grid(True)
+
+        ax2 = self.fig_differentiation.add_subplot(222)
+        for name in errors:
+            valid_indices = ~np.isnan(np.array(errors[name]))
+            if np.any(valid_indices):
+                valid_h = np.array(h_values)[valid_indices]
+                valid_errors = np.array(errors[name])[valid_indices]
+                ax2.loglog(valid_h, valid_errors, "o-", label=name)
+
+                if name in best_h:
+                    optimal_idx = np.where(np.array(h_values) == best_h[name])[0]
+                    if len(optimal_idx) > 0:
+                        ax2.plot(
+                            best_h[name],
+                            errors[name][optimal_idx[0]],
+                            "r*",
+                            markersize=10,
+                        )
+
+        ax2.set_title("Зависимость погрешности от шага")
+        ax2.set_xlabel("Шаг h")
+        ax2.set_ylabel("Погрешность")
+        ax2.legend()
+        ax2.grid(True)
+
+        ax3 = self.fig_differentiation.add_subplot(223)
+        for name in derivative_values:
+            valid_indices = ~np.isnan(np.array(derivative_values[name]))
+            if np.any(valid_indices):
+                valid_h = np.array(h_values)[valid_indices]
+                valid_derivatives = np.array(derivative_values[name])[valid_indices]
+                ax3.semilogx(valid_h, valid_derivatives, "o-", label=name)
+
+        ax3.axhline(
+            y=exact_derivative, color="k", linestyle="--", label="Точное значение"
+        )
+
+        ax3.set_title(
+            f'Значения {"первой" if derivative_order == "first" else "второй"} производной'
+        )
+        ax3.set_xlabel("Шаг h")
+        ax3.set_ylabel(f'f{"'" if derivative_order == "first" else "''"} (x)')
+        ax3.legend()
+        ax3.grid(True)
+
+        ax4 = self.fig_differentiation.add_subplot(224)
+        names = list(best_h.keys())
+        values = [
+            (
+                derivative_values[name][h_values.index(best_h[name])]
+                if name in best_h
+                else np.nan
+            )
+            for name in names
+        ]
+        errors_at_best = [
+            errors[name][h_values.index(best_h[name])] if name in best_h else np.nan
+            for name in names
+        ]
+
+        x_pos = np.arange(len(names))
+        ax4.bar(x_pos, values, align="center", alpha=0.7)
+        ax4.axhline(
+            y=exact_derivative, color="r", linestyle="--", label="Точное значение"
+        )
+
+        ax4.set_title("Сравнение методов (оптимальный шаг)")
+        ax4.set_xticks(x_pos)
+        ax4.set_xticklabels(names, rotation=45, ha="right")
+        ax4.set_ylabel(f'f{"'" if derivative_order == "first" else "''"} (x)')
+
+        for i, v in enumerate(values):
+            if not np.isnan(v):
+                ax4.text(
+                    i,
+                    v + 0.01 * max(values),
+                    f"{errors_at_best[i]:.1e}",
+                    ha="center",
+                    va="bottom",
+                    rotation=0,
+                    fontsize=8,
+                )
+
+        self.fig_differentiation.tight_layout()
+        self.canvas_differentiation.draw()
+
+    def solve_equation(self):
+        """Solve nonlinear equation using selected method(s)"""
+        try:
+            a = float(self.eq_a_entry.get())
+            b = float(self.eq_b_entry.get())
+            eps = float(self.eq_eps_entry.get())
+            x0 = float(self.eq_x0_entry.get())
+            selected_method = self.eq_method_var.get()
+
+            # Validate input
+            if a >= b:
+                raise ValueError("Правая граница должна быть больше левой")
+
+            if eps <= 0:
+                raise ValueError("Точность должна быть положительным числом")
+
+            fa = self.f_eq(a)
+            fb = self.f_eq(b)
+
+            if fa * fb > 0 and selected_method in [
+                "all",
+                "bisection",
+                "chord",
+                "hybrid",
+            ]:
+                messagebox.showwarning(
+                    "Предупреждение",
+                    "Функция имеет одинаковый знак на концах отрезка. Методы половинного деления, хорд и гибридный могут не сработать.",
+                )
+
+            self.equation_result_text.delete(1.0, tk.END)
+            self.equation_result_text.insert(
+                tk.END, "🔢 РЕШЕНИЕ НЕЛИНЕЙНОГО УРАВНЕНИЯ\n"
+            )
+            self.equation_result_text.insert(tk.END, "=" * 60 + "\n\n")
+
+            self.equation_result_text.insert(tk.END, "📝 ВХОДНЫЕ ДАННЫЕ:\n")
+            self.equation_result_text.insert(
+                tk.END, f"• Уравнение: {self.equation_entry.get()} = 0\n"
+            )
+            self.equation_result_text.insert(tk.END, f"• Интервал: [{a}, {b}]\n")
+            self.equation_result_text.insert(
+                tk.END, f"• Начальное приближение x₀: {x0}\n"
+            )
+            self.equation_result_text.insert(tk.END, f"• Требуемая точность: {eps}\n")
+            self.equation_result_text.insert(tk.END, "-" * 60 + "\n\n")
+
+            self.status_var.set("Решение уравнения...")
+            self.root.update()
+
+            methods = []
+            if selected_method == "all" or selected_method == "bisection":
+                methods.append(("Метод половинного деления", self.bisection_method))
+            if selected_method == "all" or selected_method == "chord":
+                methods.append(("Метод хорд", self.chord_method))
+            if selected_method == "all" or selected_method == "newton":
+                methods.append(("Метод Ньютона", self.newton_method))
+            if selected_method == "all" or selected_method == "secant":
+                methods.append(("Метод секущих", self.secant_method))
+            if selected_method == "all" or selected_method == "hybrid":
+                methods.append(
+                    ("Гибридный метод Ньютона-половинного деления", self.hybrid_method)
+                )
+
+            results = []
+
+            for method_name, method in methods:
+                self.equation_result_text.insert(tk.END, f"📊 {method_name.upper()}\n")
+                self.equation_result_text.insert(tk.END, "-" * 60 + "\n\n")
+
+                start_time = time.time()
+
+                if method_name == "Метод Ньютона" or method_name == "Метод секущих":
+                    root, iterations, convergence_data = method(a, b, eps, x0)
+                else:
+                    root, iterations, convergence_data = method(a, b, eps)
+
+                execution_time = time.time() - start_time
+
+                self.equation_result_text.insert(tk.END, "Итерации:\n")
+                self.equation_result_text.insert(tk.END, "-" * 80 + "\n")
+
+                if method_name == "Метод половинного деления":
+                    self.equation_result_text.insert(
+                        tk.END,
+                        "  k  |     a     |     b     |     c     |    f(c)    |   |b-a|   \n",
+                    )
+                    self.equation_result_text.insert(tk.END, "-" * 80 + "\n")
+
+                    for i, (a_i, b_i, c_i, fc_i, interval) in enumerate(
+                        convergence_data
+                    ):
+                        self.equation_result_text.insert(
+                            tk.END,
+                            f" {i:3d} | {a_i:9.6f} | {b_i:9.6f} | {c_i:9.6f} | {fc_i:10.6e} | {interval:9.6e}\n",
+                        )
+
+                elif method_name == "Метод хорд":
+                    self.equation_result_text.insert(
+                        tk.END,
+                        "  k  |     a     |     b     |     c     |    f(c)    |   |c-c_prev|   \n",
+                    )
+                    self.equation_result_text.insert(tk.END, "-" * 80 + "\n")
+
+                    for i, (a_i, b_i, c_i, fc_i, delta) in enumerate(convergence_data):
+                        self.equation_result_text.insert(
+                            tk.END,
+                            f" {i:3d} | {a_i:9.6f} | {b_i:9.6f} | {c_i:9.6f} | {fc_i:10.6e} | {delta if i > 0 else 'N/A':15}\n",
+                        )
+
+                elif method_name == "Метод Ньютона":
+                    self.equation_result_text.insert(
+                        tk.END,
+                        "  k  |     x_k    |    f(x_k)   |   f'(x_k)   |   |x_k - x_{k-1}|   \n",
+                    )
+                    self.equation_result_text.insert(tk.END, "-" * 80 + "\n")
+
+                    for i, (x_i, fx_i, dfx_i, delta) in enumerate(convergence_data):
+                        self.equation_result_text.insert(
+                            tk.END,
+                            f" {i:3d} | {x_i:10.6f} | {fx_i:11.6e} | {dfx_i:11.6e} | {delta if i > 0 else 'N/A':17}\n",
+                        )
+
+                elif method_name == "Метод секущих":
+                    self.equation_result_text.insert(
+                        tk.END,
+                        "  k  |    x_{k-1}   |     x_k     |    f(x_k)    |   |x_k - x_{k-1}|   \n",
+                    )
+                    self.equation_result_text.insert(tk.END, "-" * 80 + "\n")
+
+                    for i, (x_prev, x_i, fx_i, delta) in enumerate(convergence_data):
+                        self.equation_result_text.insert(
+                            tk.END,
+                            f" {i:3d} | {x_prev:12.6f} | {x_i:12.6f} | {fx_i:12.6e} | {delta if i > 0 else 'N/A':17}\n",
+                        )
+
+                elif method_name == "Гибридный метод Ньютона-половинного деления":
+                    self.equation_result_text.insert(
+                        tk.END,
+                        "  k  |     a     |     b     |     x     |    f(x)    |   метод   |   |x_k - x_{k-1}|   \n",
+                    )
+                    self.equation_result_text.insert(tk.END, "-" * 100 + "\n")
+
+                    for i, (a_i, b_i, x_i, fx_i, method_used, delta) in enumerate(
+                        convergence_data
+                    ):
+                        self.equation_result_text.insert(
+                            tk.END,
+                            f" {i:3d} | {a_i:9.6f} | {b_i:9.6f} | {x_i:9.6f} | {fx_i:10.6e} | {method_used:9} | {delta if i > 0 else 'N/A':17}\n",
+                        )
+
+                # Summary
+                self.equation_result_text.insert(tk.END, "\n🎯 РЕЗУЛЬТАТ:\n")
+                self.equation_result_text.insert(
+                    tk.END, f"• Корень уравнения: {root:.10f}\n"
+                )
+                self.equation_result_text.insert(
+                    tk.END, f"• Значение функции: {self.f_eq(root):.10e}\n"
+                )
+                self.equation_result_text.insert(
+                    tk.END, f"• Число итераций: {iterations}\n"
+                )
+                self.equation_result_text.insert(
+                    tk.END, f"• Время выполнения: {execution_time:.6f} сек\n"
+                )
+                self.equation_result_text.insert(tk.END, "=" * 60 + "\n\n")
+
+                results.append(
+                    (method_name, root, iterations, execution_time, convergence_data)
+                )
+
+            self.plot_equation_results(a, b, results)
+
+            self.status_var.set("Решение уравнения завершено")
+
+        except Exception as e:
+            messagebox.showerror(
+                "Ошибка", f"Произошла ошибка при решении уравнения: {str(e)}"
+            )
+            self.status_var.set("Ошибка решения уравнения")
+
+    def bisection_method(self, a, b, eps):
+        """Bisection method for solving nonlinear equations"""
+        fa = self.f_eq(a)
+        fb = self.f_eq(b)
+
+        if fa * fb > 0:
+            raise ValueError("Функция должна иметь разные знаки на концах отрезка")
+
+        iterations = 0
+        convergence_data = []
+
+        while (b - a) > eps:
+            c = (a + b) / 2
+            fc = self.f_eq(c)
+
+            convergence_data.append((a, b, c, fc, b - a))
+
+            if abs(fc) < eps:
+                break
+
+            if fa * fc < 0:
+                b = c
+                fb = fc
+            else:
+                a = c
+                fa = fc
+
+            iterations += 1
+
+            if iterations > 1000:
+                break
+
+        root = (a + b) / 2
+        return root, iterations, convergence_data
+
+    def chord_method(self, a, b, eps):
+        """Chord method for solving nonlinear equations"""
+        fa = self.f_eq(a)
+        fb = self.f_eq(b)
+
+        if fa * fb > 0:
+            raise ValueError("Функция должна иметь разные знаки на концах отрезка")
+
+        iterations = 0
+        c_prev = a
+        c = a - fa * (b - a) / (fb - fa)
+
+        convergence_data = [(a, b, c, self.f_eq(c), None)]
+
+        while abs(c - c_prev) > eps:
+            fc = self.f_eq(c)
+
+            if abs(fc) < eps:
+                break
+
+            if fa * fc < 0:
+                b = c
+                fb = fc
+            else:
+                a = c
+                fa = fc
+
+            c_prev = c
+            c = a - fa * (b - a) / (fb - fa)
+
+            convergence_data.append((a, b, c, self.f_eq(c), abs(c - c_prev)))
+
+            iterations += 1
+
+            if iterations > 1000:
+                break
+
+        return c, iterations, convergence_data
+
+    def newton_method(self, a, b, eps, x0):
+        """Newton's method for solving nonlinear equations"""
+        if x0 < a or x0 > b:
+            x0 = (a + b) / 2
+
+        iterations = 0
+        x = x0
+
+        convergence_data = []
+
+        while True:
+            fx = self.f_eq(x)
+            dfx = self.df_eq(x)
+
+            if abs(dfx) < 1e-10:
+                raise ValueError("Производная близка к нулю, метод Ньютона не сходится")
+
+            x_new = x - fx / dfx
+
+            if iterations > 0:
+                delta = abs(x_new - x)
+                convergence_data.append((x, fx, dfx, delta))
+            else:
+                convergence_data.append((x, fx, dfx, None))
+
+            if abs(x_new - x) < eps or abs(fx) < eps:
+                x = x_new
+                break
+
+            x = x_new
+            iterations += 1
+
+            if iterations > 1000:
+                break
+
+            if x < a or x > b:
+                raise ValueError(f"Решение вышло за пределы отрезка [{a}, {b}]")
+
+        return x, iterations, convergence_data
+
+    def secant_method(self, a, b, eps, x0):
+        """Secant method for solving nonlinear equations"""
+        if x0 < a or x0 > b:
+            x0 = (a + b) / 2
+
+        iterations = 0
+        x_prev = x0
+        x = x0 + 0.1 * abs(x0)
+
+        if x < a or x > b:
+            x = x0 - 0.1 * abs(x0)
+
+        convergence_data = [(x_prev, x, self.f_eq(x), None)]
+
+        while True:
+            fx_prev = self.f_eq(x_prev)
+            fx = self.f_eq(x)
+
+            if abs(fx - fx_prev) < 1e-10:
+                raise ValueError(
+                    "Разность значений функции близка к нулю, метод секущих не сходится"
+                )
+
+            x_new = x - fx * (x - x_prev) / (fx - fx_prev)
+
+            delta = abs(x_new - x)
+            convergence_data.append((x, x_new, self.f_eq(x_new), delta))
+
+            if delta < eps or abs(fx) < eps:
+                x = x_new
+                break
+
+            x_prev = x
+            x = x_new
+            iterations += 1
+
+            if iterations > 1000:
+                break
+
+            if x < a or x > b:
+                raise ValueError(f"Решение вышло за пределы отрезка [{a}, {b}]")
+
+        return x, iterations, convergence_data
+
+    def hybrid_method(self, a, b, eps):
+        """Hybrid Newton-bisection method for solving nonlinear equations"""
+        fa = self.f_eq(a)
+        fb = self.f_eq(b)
+
+        if fa * fb > 0:
+            raise ValueError("Функция должна иметь разные знаки на концах отрезка")
+
+        iterations = 0
+        x = (a + b) / 2
+
+        convergence_data = [(a, b, x, self.f_eq(x), "Бисекция", None)]
+
+        while (b - a) > eps:
+            fx = self.f_eq(x)
+
+            if abs(fx) < eps:
+                break
+
+            dfx = self.df_eq(x)
+
+            if abs(dfx) > 1e-10:
+                x_newton = x - fx / dfx
+
+                if a <= x_newton <= b and abs(x_newton - x) < 0.5 * (b - a):
+                    x_prev = x
+                    x = x_newton
+                    method_used = "Ньютон"
+                else:
+                    c = (a + b) / 2
+                    fc = self.f_eq(c)
+
+                    if fa * fc < 0:
+                        b = c
+                        fb = fc
+                    else:
+                        a = c
+                        fa = fc
+
+                    x_prev = x
+                    x = (a + b) / 2
+                    method_used = "Бисекция"
+            else:
+                c = (a + b) / 2
+                fc = self.f_eq(c)
+
+                if fa * fc < 0:
+                    b = c
+                    fb = fc
+                else:
+                    a = c
+                    fa = fc
+
+                x_prev = x
+                x = (a + b) / 2
+                method_used = "Бисекция"
+
+            if iterations > 0:
+                delta = abs(x - x_prev)
+                convergence_data.append((a, b, x, self.f_eq(x), method_used, delta))
+            else:
+                convergence_data.append((a, b, x, self.f_eq(x), method_used, None))
+
+            iterations += 1
+
+            if iterations > 1000:
+                break
+
+        return x, iterations, convergence_data
+
+    def plot_equation_results(self, a, b, results):
+        """Plot equation solving results"""
+        self.fig_equation.clear()
+
+        margin = 0.2 * (b - a)
+        x_min = a - margin
+        x_max = b + margin
+
+        ax1 = self.fig_equation.add_subplot(221)
+        x = np.linspace(x_min, x_max, 1000)
+        y = np.array([self.f_eq(xi) for xi in x])
+
+        ax1.plot(x, y, "b-", linewidth=2, label="f(x)")
+        ax1.axhline(y=0, color="k", linestyle="-", alpha=0.3)
+        ax1.axvline(x=a, color="r", linestyle="--", alpha=0.5, label=f"a = {a}")
+        ax1.axvline(x=b, color="g", linestyle="--", alpha=0.5, label=f"b = {b}")
+
+        for method_name, root, _, _, _ in results:
+            ax1.plot(root, 0, "ro", markersize=6)
+            ax1.annotate(
+                f"{method_name}: x = {root:.6f}",
+                xy=(root, 0),
+                xytext=(root, self.f_eq(root) * 0.5),
+                arrowprops=dict(arrowstyle="->", connectionstyle="arc3"),
+            )
+
+        ax1.set_title("График функции")
+        ax1.set_xlabel("x")
+        ax1.set_ylabel("f(x)")
+        ax1.legend()
+        ax1.grid(True)
+
+        ax2 = self.fig_equation.add_subplot(222)
+
+        for method_name, _, _, _, convergence_data in results:
+            if method_name == "Метод половинного деления":
+                iterations = range(len(convergence_data))
+                errors = [data[4] for data in convergence_data]  # |b-a|
+                ax2.semilogy(iterations, errors, "o-", label=method_name)
+            elif method_name == "Метод хорд":
+                iterations = range(1, len(convergence_data))
+                errors = [data[4] for data in convergence_data[1:]]  # |c-c_prev|
+                ax2.semilogy(iterations, errors, "s-", label=method_name)
+            elif method_name == "Метод Ньютона":
+                iterations = range(1, len(convergence_data))
+                errors = [data[3] for data in convergence_data[1:]]  # |x_k - x_{k-1}|
+                ax2.semilogy(iterations, errors, "^-", label=method_name)
+            elif method_name == "Метод секущих":
+                iterations = range(1, len(convergence_data))
+                errors = [data[3] for data in convergence_data[1:]]  # |x_k - x_{k-1}|
+                ax2.semilogy(iterations, errors, "D-", label=method_name)
+            elif method_name == "Гибридный метод Ньютона-половинного деления":
+                iterations = range(1, len(convergence_data))
+                errors = [data[5] for data in convergence_data[1:]]  # |x_k - x_{k-1}|
+                ax2.semilogy(iterations, errors, "*-", label=method_name)
+
+        ax2.set_title("Скорость сходимости")
+        ax2.set_xlabel("Итерация")
+        ax2.set_ylabel("Погрешность")
+        ax2.legend()
+        ax2.grid(True)
+
+        ax3 = self.fig_equation.add_subplot(223)
+
+        method_names = [result[0] for result in results]
+        iterations_count = [result[2] for result in results]
+
+        x_pos = np.arange(len(method_names))
+        ax3.bar(x_pos, iterations_count, alpha=0.7)
+        ax3.set_title("Число итераций")
+        ax3.set_ylabel("Итерации")
+        ax3.set_xticks(x_pos)
+        ax3.set_xticklabels(method_names, rotation=45, ha="right")
+
+        for i, v in enumerate(iterations_count):
+            ax3.text(i, v + 0.1, str(v), ha="center")
+
+        ax4 = self.fig_equation.add_subplot(224)
+
+        execution_times = [result[3] for result in results]
+
+        ax4.bar(x_pos, execution_times, alpha=0.7, color="green")
+        ax4.set_title("Время выполнения")
+        ax4.set_ylabel("Время (сек)")
+        ax4.set_xticks(x_pos)
+        ax4.set_xticklabels(method_names, rotation=45, ha="right")
+
+        for i, v in enumerate(execution_times):
+            ax4.text(i, v + 0.0001, f"{v:.6f}", ha="center")
+        self.fig_equation.set_size_inches(12, 10)
+        self.fig_equation.tight_layout(pad=1.5)
+        self.canvas_equation.draw()
+
+    def benchmark_equation_methods(self):
+        """Benchmark equation solving methods with different precision levels"""
+        try:
+            a = float(self.eq_a_entry.get())
+            b = float(self.eq_b_entry.get())
+            x0 = float(self.eq_x0_entry.get())
+
+            precision_levels = [1e-3, 1e-6, 1e-9, 1e-12]
+
+            test_equations = [
+                self.equation_entry.get(),
+                "sin(x) - 0.5",
+                "x**2 - ln(x) - 4",
+                "x**2/5 + x/4 - ln(x)/4 - 1",
+            ]
+
+            self.equation_result_text.delete(1.0, tk.END)
+            self.equation_result_text.insert(
+                tk.END, "🔢 СРАВНИТЕЛЬНЫЙ АНАЛИЗ МЕТОДОВ\n"
+            )
+            self.equation_result_text.insert(tk.END, "=" * 60 + "\n\n")
+
+            self.status_var.set("Выполняется сравнительный анализ...")
+            self.root.update()
+
+            all_results = []
+
+            for eq_idx, equation in enumerate(test_equations):
+                self.equation_result_text.insert(
+                    tk.END, f"📊 УРАВНЕНИЕ {eq_idx+1}: {equation} = 0\n"
+                )
+                self.equation_result_text.insert(tk.END, "-" * 60 + "\n\n")
+
+                current_equation = self.equation_entry.get()
+
+                self.equation_entry.delete(0, tk.END)
+                self.equation_entry.insert(0, equation)
+
+                try:
+                    fa = self.f_eq(a)
+                    fb = self.f_eq(b)
+
+                    if fa * fb > 0:
+                        self.equation_result_text.insert(
+                            tk.END,
+                            f"⚠️ Функция имеет одинаковый знак на концах отрезка [{a}, {b}].\n"
+                            f"Методы половинного деления, хорд и гибридный могут не сработать.\n\n",
+                        )
+                except Exception as e:
+                    self.equation_result_text.insert(
+                        tk.END, f"⚠️ Ошибка при вычислении функции: {str(e)}\n\n"
+                    )
+                    continue
+
+                self.equation_result_text.insert(
+                    tk.END, "Зависимость числа итераций от точности:\n"
+                )
+                self.equation_result_text.insert(tk.END, "-" * 80 + "\n")
+                self.equation_result_text.insert(
+                    tk.END,
+                    "Метод                                | ε = 1e-3  | ε = 1e-6  | ε = 1e-9  | ε = 1e-12 \n",
+                )
+                self.equation_result_text.insert(tk.END, "-" * 80 + "\n")
+
+                equation_results = {"equation": equation, "methods": {}}
+
+                methods = [
+                    ("Метод половинного деления", self.bisection_method),
+                    ("Метод хорд", self.chord_method),
+                    ("Метод Ньютона", self.newton_method),
+                    ("Метод секущих", self.secant_method),
+                    ("Гибридный метод", self.hybrid_method),
+                ]
+
+                for method_name, method in methods:
+                    iterations_by_precision = []
+                    times_by_precision = []
+
+                    for eps in precision_levels:
+                        try:
+                            start_time = time.time()
+
+                            if method_name in ["Метод Ньютона", "Метод секущих"]:
+                                root, iterations, _ = method(a, b, eps, x0)
+                            else:
+                                root, iterations, _ = method(a, b, eps)
+
+                            execution_time = time.time() - start_time
+
+                            iterations_by_precision.append(iterations)
+                            times_by_precision.append(execution_time)
+
+                        except Exception as e:
+                            iterations_by_precision.append("N/A")
+                            times_by_precision.append("N/A")
+
+                    self.equation_result_text.insert(
+                        tk.END,
+                        f"{method_name:38} | {iterations_by_precision[0] if iterations_by_precision[0] != 'N/A' else 'N/A':9} | "
+                        f"{iterations_by_precision[1] if iterations_by_precision[1] != 'N/A' else 'N/A':9} | "
+                        f"{iterations_by_precision[2] if iterations_by_precision[2] != 'N/A' else 'N/A':9} | "
+                        f"{iterations_by_precision[3] if iterations_by_precision[3] != 'N/A' else 'N/A':9}\n",
+                    )
+
+                    equation_results["methods"][method_name] = {
+                        "iterations": iterations_by_precision,
+                        "times": times_by_precision,
+                    }
+
+                self.equation_result_text.insert(
+                    tk.END, "\nЗависимость времени выполнения от точности (сек):\n"
+                )
+                self.equation_result_text.insert(tk.END, "-" * 80 + "\n")
+                self.equation_result_text.insert(
+                    tk.END,
+                    "Метод                                | ε = 1e-3  | ε = 1e-6  | ε = 1e-9  | ε = 1e-12 \n",
+                )
+                self.equation_result_text.insert(tk.END, "-" * 80 + "\n")
+
+                for method_name, method in methods:
+                    times = equation_results["methods"][method_name]["times"]
+
+                    self.equation_result_text.insert(
+                        tk.END,
+                        f"{method_name:38} | {times[0] if times[0] != 'N/A' else 'N/A':9.6f} | "
+                        f"{times[1] if times[1] != 'N/A' else 'N/A':9.6f} | "
+                        f"{times[2] if times[2] != 'N/A' else 'N/A':9.6f} | "
+                        f"{times[3] if times[3] != 'N/A' else 'N/A':9.6f}\n",
+                    )
+
+                self.equation_result_text.insert(tk.END, "=" * 60 + "\n\n")
+
+                all_results.append(equation_results)
+
+                self.equation_entry.delete(0, tk.END)
+                self.equation_entry.insert(0, current_equation)
+
+            self.plot_benchmark_results(all_results, precision_levels)
+
+            self.status_var.set("Сравнительный анализ завершен")
+
+        except Exception as e:
+            messagebox.showerror(
+                "Ошибка",
+                f"Произошла ошибка при выполнении сравнительного анализа: {str(e)}",
+            )
+            self.status_var.set("Ошибка сравнительного анализа")
+
+    def plot_benchmark_results(self, all_results, precision_levels):
+        """Plot benchmark results"""
+        self.fig_equation.clear()
+
+        for i, result in enumerate(all_results):
+            ax = self.fig_equation.add_subplot(2, 2, i + 1)
+
+            for method_name, data in result["methods"].items():
+                iterations = data["iterations"]
+
+                iterations_numeric = []
+                for it in iterations:
+                    if it == "N/A":
+                        iterations_numeric.append(None)
+                    else:
+                        iterations_numeric.append(it)
+
+                if any(it is not None for it in iterations_numeric):
+                    valid_indices = [
+                        i for i, it in enumerate(iterations_numeric) if it is not None
+                    ]
+                    valid_iterations = [iterations_numeric[i] for i in valid_indices]
+                    valid_precision = [precision_levels[i] for i in valid_indices]
+
+                    ax.loglog(
+                        valid_precision, valid_iterations, "o-", label=method_name
+                    )
+
+            ax.set_title(f'Уравнение {i+1}: {result["equation"]}')
+            ax.set_xlabel("Точность ε")
+            ax.set_ylabel("Число итераций")
+            ax.grid(True)
+            ax.legend()
+
+        self.fig_equation.tight_layout()
+        self.canvas_equation.draw()
+
     def save_results(self):
         try:
             file_path = filedialog.asksaveasfilename(
@@ -1294,19 +2807,29 @@ class NumericalMethodsApp:
                 return
 
             with PdfPages(file_path) as pdf:
-                if hasattr(self, "fig_integration"):
-                    pdf.savefig(self.fig_integration)
-                if hasattr(self, "fig_interpolation"):
-                    pdf.savefig(self.fig_interpolation)
+                for fig_attr in [
+                    "fig_integration",
+                    "fig_interpolation",
+                    "fig_differentiation",
+                    "fig_equation",
+                ]:
+                    if hasattr(self, fig_attr):
+                        pdf.savefig(getattr(self, fig_attr))
 
                 fig_text = plt.figure(figsize=(8.27, 11.69))  # A4
                 fig_text.clf()
 
-                results_text = self.result_text.get(1.0, tk.END)
-                if hasattr(self, "interpolation_result_text"):
-                    results_text += "\n\n" + self.interpolation_result_text.get(
-                        1.0, tk.END
-                    )
+                results_text = ""
+                for text_attr in [
+                    "result_text",
+                    "interpolation_result_text",
+                    "differentiation_result_text",
+                    "equation_result_text",
+                ]:
+                    if hasattr(self, text_attr):
+                        results_text += "\n\n" + getattr(self, text_attr).get(
+                            1.0, tk.END
+                        )
 
                 chars_per_page = 3000
                 text_pages = [
